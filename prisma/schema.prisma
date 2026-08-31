@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AppelOffre {
+  id          Int          @id @default(autoincrement())
+  titre       String       @unique
+  reference   String?
+  description String?
+  dateLimite  DateTime?
+  statut      String       @default("brouillon") // brouillon | actif | cloture | archive
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  candidatures Candidature[]
+  evaluations Evaluation[]
+  documents   Document[]
+}
+
+model Entreprise {
+  id          Int          @id @default(autoincrement())
+  nom         String       @unique
+  secteur     String?
+  contact     String?
+  email       String?
+  telephone   String?
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  candidatures Candidature[]
+  documents   Document[]
+  evaluations Evaluation[]
+}
+
+model Candidature {
+  id              Int         @id @default(autoincrement())
+  appelOffreId    Int
+  entrepriseId    Int
+  // en_cours | retenue | ecartee | archive
+  statut          String      @default("en_cours")
+  // Montant HT de l'offre financière en euros (pour le calcul de la note financière Nf)
+  offreFinanciere Float?
+  // Caution de soumission = 1 % du montant de l'offre (Section I-a du DAO)
+  cautionMontant  Float?
+  // Date effective du dépôt de l'offre (Date limite de dépôt gérée sur AppelOffre.dateLimite)
+  dateDepot       DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  appelOffre      AppelOffre  @relation(fields: [appelOffreId], references: [id], onDelete: Cascade)
+  entreprise      Entreprise  @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+
+  @@unique([appelOffreId, entrepriseId])
+  @@index([appelOffreId])
+  @@index([entrepriseId])
+}
+
+model Document {
+  id           Int         @id @default(autoincrement())
+  nomFichier   String
+  cheminStocke String
+  tailleOctets Int
+  typeMime     String?
+  categorie    String      @default("autre") // technique | financier | administratif | autre
+  appelOffreId Int
+  entrepriseId Int
+  appelOffre   AppelOffre  @relation(fields: [appelOffreId], references: [id], onDelete: Cascade)
+  entreprise   Entreprise  @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+
+  @@index([appelOffreId, entrepriseId])
+  @@index([entrepriseId])
+}
+
+model Critere {
+  id          Int          @id @default(autoincrement())
+  nom         String       @unique
+  description String?
+  // Score maximal que ce critère peut rapporter (la somme des maxPoints = 110 pour l'offre technique)
+  maxPoints   Float
+  evaluations Evaluation[]
+  createdAt   DateTime     @default(now())
+}
+
+model Evaluation {
+  id           Int        @id @default(autoincrement())
+  note         Float // 0 à 20
+  commentaire  String?
+  appelOffreId Int
+  entrepriseId Int
+  critereId    Int
+  appelOffre   AppelOffre @relation(fields: [appelOffreId], references: [id], onDelete: Cascade)
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  critere      Critere    @relation(fields: [critereId], references: [id], onDelete: Cascade)
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([appelOffreId, entrepriseId, critereId])
+  @@index([appelOffreId, entrepriseId])
+}

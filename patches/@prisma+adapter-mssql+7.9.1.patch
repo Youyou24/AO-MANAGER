@@ -1,0 +1,104 @@
+diff --git a/node_modules/@prisma/adapter-mssql/dist/index.js b/node_modules/@prisma/adapter-mssql/dist/index.js
+index 8bde71e..0d18f86 100644
+--- a/node_modules/@prisma/adapter-mssql/dist/index.js
++++ b/node_modules/@prisma/adapter-mssql/dist/index.js
+@@ -37,14 +37,14 @@ module.exports = __toCommonJS(index_exports);
+ // src/mssql.ts
+ var import_driver_adapter_utils3 = require("@prisma/driver-adapter-utils");
+ var import_async_mutex = require("async-mutex");
+-var import_mssql3 = __toESM(require("mssql"));
++var import_mssql3 = __toESM(require("mssql/msnodesqlv8"));
+ 
+ // package.json
+ var name = "@prisma/adapter-mssql";
+ 
+ // src/connection-string.ts
+ var import_driver_adapter_utils = require("@prisma/driver-adapter-utils");
+-var import_mssql = __toESM(require("mssql"));
++var import_mssql = __toESM(require("mssql/msnodesqlv8"));
+ function mapIsolationLevelFromString(level) {
+   const normalizedLevel = level.toUpperCase().replace(/\s+/g, "");
+   switch (normalizedLevel) {
+@@ -338,7 +338,7 @@ var handledParameters = [
+ 
+ // src/conversion.ts
+ var import_driver_adapter_utils2 = require("@prisma/driver-adapter-utils");
+-var import_mssql2 = __toESM(require("mssql"));
++var import_mssql2 = __toESM(require("mssql/msnodesqlv8"));
+ function mapColumnType(col) {
+   switch (col.type) {
+     case import_mssql2.default.VarChar:
+@@ -695,15 +695,18 @@ var MssqlQueryable = class {
+     try {
+       const req = this.conn.request();
+       req.arrayRowMode = true;
++      let sql = query.sql;
+       for (let i = 0; i < query.args.length; i++) {
+         const argType = query.argTypes[i];
++        const name = `qr${i + 1}`;
++        sql = sql.replace(new RegExp(`@P${i + 1}\\b`, "g"), `@${name}`);
+         if (query.args[i] === null && argType.scalarType === "bytes") {
+-          req.input(`P${i + 1}`, import_mssql3.default.VarBinary, null);
++          req.input(name, import_mssql3.default.VarBinary, null);
+         } else {
+-          req.input(`P${i + 1}`, mapArg(query.args[i], argType));
++          req.input(name, mapArg(query.args[i], argType));
+         }
+       }
+-      const res = await req.query(query.sql);
++      const res = await req.query(sql);
+       return res;
+     } catch (e) {
+       this.onError(e);
+diff --git a/node_modules/@prisma/adapter-mssql/dist/index.mjs b/node_modules/@prisma/adapter-mssql/dist/index.mjs
+index 10db4de..6debf2d 100644
+--- a/node_modules/@prisma/adapter-mssql/dist/index.mjs
++++ b/node_modules/@prisma/adapter-mssql/dist/index.mjs
+@@ -4,14 +4,14 @@ import {
+   DriverAdapterError as DriverAdapterError2
+ } from "@prisma/driver-adapter-utils";
+ import { Mutex } from "async-mutex";
+-import sql3 from "mssql";
++import sql3 from "mssql/msnodesqlv8.js";
+ 
+ // package.json
+ var name = "@prisma/adapter-mssql";
+ 
+ // src/connection-string.ts
+ import { Debug } from "@prisma/driver-adapter-utils";
+-import sql from "mssql";
++import sql from "mssql/msnodesqlv8.js";
+ function mapIsolationLevelFromString(level) {
+   const normalizedLevel = level.toUpperCase().replace(/\s+/g, "");
+   switch (normalizedLevel) {
+@@ -308,7 +308,7 @@ import {
+   ColumnTypeEnum,
+   DriverAdapterError
+ } from "@prisma/driver-adapter-utils";
+-import sql2 from "mssql";
++import sql2 from "mssql/msnodesqlv8.js";
+ function mapColumnType(col) {
+   switch (col.type) {
+     case sql2.VarChar:
+@@ -665,15 +665,18 @@ var MssqlQueryable = class {
+     try {
+       const req = this.conn.request();
+       req.arrayRowMode = true;
++      let sql = query.sql;
+       for (let i = 0; i < query.args.length; i++) {
+         const argType = query.argTypes[i];
++        const name = `qr${i + 1}`;
++        sql = sql.replace(new RegExp(`@P${i + 1}\\b`, "g"), `@${name}`);
+         if (query.args[i] === null && argType.scalarType === "bytes") {
+-          req.input(`P${i + 1}`, sql3.VarBinary, null);
++          req.input(name, sql3.VarBinary, null);
+         } else {
+-          req.input(`P${i + 1}`, mapArg(query.args[i], argType));
++          req.input(name, mapArg(query.args[i], argType));
+         }
+       }
+-      const res = await req.query(query.sql);
++      const res = await req.query(sql);
+       return res;
+     } catch (e) {
+       this.onError(e);
